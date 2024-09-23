@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Area Calculation from Length and Bearing</title>
+    <style>
+        /* Global styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e90ff, #00bfff);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            color: #333;
+            text-align: center;
+            font-size: 26px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00bfff, #1e90ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+            display: block;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #1e90ff;
+            outline: none;
+        }
+
+        .bearing-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .bearing-input input {
+            width: 45%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+
+        button {
+            background-color: #1e90ff;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #00bfff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .result {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e90ff;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .result.show {
+            opacity: 1;
+        }
+
+        .divider {
+            height: 1px;
+            background: #ddd;
+            margin: 20px 0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Area Calculation</h2>
+        <form id="areaForm">
+            <label for="numSides">Number of Sides:</label>
+            <input type="number" id="numSides" value="3" min="3" required>
+
+            <div id="inputFields"></div>
+
+            <div class="divider"></div>
+
+            <button type="submit">Calculate Area</button>
+        </form>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('numSides').addEventListener('input', createFields);
+        document.getElementById('areaForm').addEventListener('submit', calculateArea);
+
+        function createFields() {
+            const numSides = document.getElementById('numSides').value;
+            const inputFields = document.getElementById('inputFields');
+            inputFields.innerHTML = ''; // Clear previous inputs
+
+            for (let i = 1; i <= numSides; i++) {
+                const lengthField = document.createElement('div');
+                const bearingField = document.createElement('div');
+
+                lengthField.innerHTML = `<label>Length of side ${i} (meters, 2 decimal places):</label> <input type="number" step="0.01" id="length${i}" required>`;
+                
+                bearingField.innerHTML = `
+                    <label>Bearing of side ${i}:</label>
+                    <div class="bearing-input">
+                        <input type="number" id="bearingDegrees${i}" min="0" max="359" required placeholder="Degrees"> 
+                        <span>°</span>
+                        <input type="number" id="bearingMinutes${i}" min="0" max="59" required placeholder="Minutes"> 
+                        <span>'</span>
+                    </div>
+                `;
+
+                inputFields.appendChild(lengthField);
+                inputFields.appendChild(bearingField);
+            }
+        }
+
+        function calculateArea(event) {
+            event.preventDefault();
+            const numSides = document.getElementById('numSides').value;
+            const lengths = [];
+            const bearings = [];
+
+            for (let i = 1; i <= numSides; i++) {
+                lengths.push(parseFloat(document.getElementById(`length${i}`).value));
+
+                const degrees = parseFloat(document.getElementById(`bearingDegrees${i}`).value);
+                const minutes = parseFloat(document.getElementById(`bearingMinutes${i}`).value);
+                
+                // Convert bearing (degrees and minutes) to decimal degrees and then to radians
+                const bearingInDecimal = degrees + (minutes / 60);
+                const bearingInRadians = bearingInDecimal * (Math.PI / 180);
+                bearings.push(bearingInRadians);
+            }
+
+            let area = 0;
+            let x = 0, y = 0;
+            let firstX = 0, firstY = 0;
+
+            for (let i = 0; i < numSides; i++) {
+                let deltaX = lengths[i] * Math.sin(bearings[i]);
+                let deltaY = lengths[i] * Math.cos(bearings[i]);
+
+                if (i === 0) {
+                    firstX = deltaX;
+                    firstY = deltaY;
+                }
+
+                if (i > 0) {
+                    area += (x * deltaY) - (y * deltaX);
+                }
+
+                x += deltaX;
+                y += deltaY;
+            }
+
+            // Close the polygon with the first point
+            area += (x * firstY) - (y * firstX);
+            area = Math.abs(area) / 2;
+
+            const resultElement = document.getElementById('result');
+            resultElement.innerText = `Calculated Area: ${area.toFixed(2)} square meters`;
+            resultElement.classList.add('show');
+        }
+
+        // Initialize fields on load
+        createFields();
+    </script>
+
+</body>
+</html>
